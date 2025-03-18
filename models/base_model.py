@@ -130,7 +130,12 @@ class BaseModel(ABC):
         visual_ret = OrderedDict()
         for name in self.visual_names:
             if isinstance(name, str):
-                visual_ret[name] = getattr(self, name)
+                
+                img = getattr(self, name)
+                if img.shape[1] != 3:
+                    img = img[:, :3, :, :]
+
+                visual_ret[name] = img
         return visual_ret
 
     def get_current_losses(self):

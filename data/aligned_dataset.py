@@ -1,4 +1,6 @@
 import os
+import pandas as pd
+import torch
 from data.base_dataset import BaseDataset, get_params, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
@@ -20,10 +22,31 @@ class AlignedDataset(BaseDataset):
         BaseDataset.__init__(self, opt)
         self.dir_AB = os.path.join(opt.dataroot, opt.phase)  # get the image directory
         self.AB_paths = sorted(make_dataset(self.dir_AB, opt.max_dataset_size))  # get image paths
+
+        # Load design metrics from CSV
+        self.metrics_csv_path = os.path.join(opt.dataroot, f"metrics.csv")
+        self.metrics_dict = self._load_metrics()
+        self.control_dim = len(next(iter(self.metrics_dict.values())))
+        print("Conrtol Dimension:", self.control_dim)
+
         assert(self.opt.load_size >= self.opt.crop_size)   # crop_size should be smaller than the size of loaded image
         self.input_nc = self.opt.output_nc if self.opt.direction == 'BtoA' else self.opt.input_nc
         self.output_nc = self.opt.input_nc if self.opt.direction == 'BtoA' else self.opt.output_nc
 
+    def _load_metrics(self):
+        """Load metrics from CSV into a dictionary."""
+        if os.path.exists(self.metrics_csv_path):
+            df = pd.read_csv(self.metrics_csv_path, index_col=0)
+
+            numeric_cols = df.columns
+            df[numeric_cols] = (df[numeric_cols] - df[numeric_cols].min()) / (df[numeric_cols].max() - df[numeric_cols].min()) * 255
+
+            metrics_dict = df.to_dict(orient='index')
+            return metrics_dict
+        else:
+            print('Cannot find metrics csv documents.')
+            return {}
+        
     def __getitem__(self, index):
         """Return a data point and its metadata information.
 
@@ -38,12 +61,20 @@ class AlignedDataset(BaseDataset):
         """
         # read a image given a random integer index
         AB_path = self.AB_paths[index]
+        filename = os.path.basename(AB_path)
+
         AB = Image.open(AB_path).convert('RGB')
         # split AB image into A and B
         w, h = AB.size
         w2 = int(w / 2)
         A = AB.crop((0, 0, w2, h))
         B = AB.crop((w2, 0, w, h))
+
+        if filename not in self.metrics_dict:
+            raise FileNotFoundError(f"Metrics for {filename} not found in {self.metrics_csv_path}")
+        control_vector = self.metrics_dict[filename]
+
+        control_vector = torch.tensor(control_vector, dtype=torch.float32)
 
         # apply the same transform to both A and B
         transform_params = get_params(self.opt, A.size)
@@ -53,7 +84,7 @@ class AlignedDataset(BaseDataset):
         A = A_transform(A)
         B = B_transform(B)
 
-        return {'A': A, 'B': B, 'A_paths': AB_path, 'B_paths': AB_path}
+        return {'A': A, 'B': B, 'A_paths': AB_path, 'B_paths': AB_path, 'control_vector': control_vector}
 
     def __len__(self):
         """Return the total number of images in the dataset."""
