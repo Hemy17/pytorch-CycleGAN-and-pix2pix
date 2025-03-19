@@ -644,7 +644,7 @@ class UnetSkipConnectionBlock(nn.Module):
         skip_x = x 
         for layer in self.model:
             if isinstance(layer, UnetSkipConnectionBlock):  
-                x = layer(x, control_embedding  if self.innermost else None)
+                x = layer(x, control_embedding)
             else:
                 x = layer(x)
         #return self.model(x)
