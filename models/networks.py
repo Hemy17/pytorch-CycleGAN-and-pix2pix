@@ -583,15 +583,31 @@ class UnetSkipConnectionBlock(nn.Module):
         elif self.innermost and control_embedding is not None:
         # Splice control vectors only at Bottleneck level
             print(f"[UnetSkipConnectionBlock] control_embedding.shape: {control_embedding.shape}")
+            control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1) 
             #x = torch.cat([x, control_embedding.expand(-1, -1, x.size(2), x.size(3))], dim=1)
             x = torch.cat([x, control_embedding], dim=1)
             #x = self.match_channels(x)
             print(f"[UnetSkipConnectionBlock] x.shape after concatenation: {x.shape}")
             return torch.cat([x, self.model(x)], 1)
+        
         else:   # add skip connections
             #x = torch.cat([x, self.model(x)], 1)
             #return self.match_channels(x) 
-            return torch.cat([x, self.model(x)], 1)
+
+            #return torch.cat([x, self.model(x)], 1)
+
+            model_out = self.model(x)
+            print(f"[UnetSkipConnectionBlock] self.model(x).shape: {model_out.shape}")
+
+            try:
+                output = torch.cat([x, model_out], 1)
+                print(f"[UnetSkipConnectionBlock] torch.cat output.shape: {output.shape}")
+                return output
+            except Exception as e:
+                print(f"[ERROR] torch.cat failed with {e}")
+                print(f"x.shape: {x.shape}")
+                print(f"self.model(x).shape: {model_out.shape}")
+                raise e
 
 
 class NLayerDiscriminator(nn.Module):
