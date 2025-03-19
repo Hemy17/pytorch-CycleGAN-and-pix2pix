@@ -485,8 +485,8 @@ class UnetGenerator(nn.Module):
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
         control_embedding = control_embedding.view(control_embedding.shape[0], 1024, 1, 1)  
-        control_embedding = control_embedding.expand(-1, -1, 4, 4)
-        #control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', #align_corners=True)
+        #control_embedding = control_embedding.expand(-1, -1, 4, 4)
+        control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 4, 4)
         print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
 
@@ -570,7 +570,8 @@ class UnetSkipConnectionBlock(nn.Module):
         elif self.innermost and control_embedding is not None:
         # Splice control vectors only at Bottleneck level
             print(f"[UnetSkipConnectionBlock] control_embedding.shape: {control_embedding.shape}")
-            x = torch.cat([x, control_embedding.expand(-1, -1, x.size(2), x.size(3))], dim=1)
+            #x = torch.cat([x, control_embedding.expand(-1, -1, x.size(2), x.size(3))], dim=1)
+            x = torch.cat([x, control_embedding], dim=1)
             #x = self.match_channels(x)
             print(f"[UnetSkipConnectionBlock] x.shape after concatenation: {x.shape}")
             return torch.cat([x, self.model(x)], 1)
