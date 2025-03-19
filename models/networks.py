@@ -593,7 +593,7 @@ class UnetSkipConnectionBlock(nn.Module):
             #return self.match_channels(x) 
             return torch.cat([x, self.model(x)], 1)
 
-å
+
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
 
