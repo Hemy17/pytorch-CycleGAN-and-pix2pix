@@ -641,7 +641,7 @@ class UnetSkipConnectionBlock(nn.Module):
             x = torch.cat([x, control_embedding], dim=1)
 
             x = self.reduce_conv(x)
-            
+
             print(f"[Innermost] x.shape after control embedding: {x.shape}")
 
             return self.model(x)
@@ -649,7 +649,7 @@ class UnetSkipConnectionBlock(nn.Module):
         skip_x = x 
         for layer in self.model:
             if isinstance(layer, UnetSkipConnectionBlock):  
-                x = layer(x, control_embedding)
+                x = layer(x, control_embedding if layer.innermost else None)
             else:
                 x = layer(x)
         #return self.model(x)
