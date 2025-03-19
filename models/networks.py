@@ -649,11 +649,10 @@ class UnetSkipConnectionBlock(nn.Module):
         else:
             skip_x = x 
             for layer in self.model:
-                x = layer(x, control_embedding) 
-                #if isinstance(layer, UnetSkipConnectionBlock):  
-                #    x = layer(x, control_embedding)
-                #else:
-                #    x = layer(x)
+                if isinstance(layer, UnetSkipConnectionBlock):  
+                    x = layer(x, control_embedding)
+                else:
+                    x = layer(x)
             #return self.model(x)
             #return torch.cat([x, self.model(x)], 1)
 
