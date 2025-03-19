@@ -477,10 +477,13 @@ class UnetGenerator(nn.Module):
 
     def forward(self, input, control_vector):
         """Standard forward"""
+        print(f"[UnetGenerator] control_vector.shape: {control_vector.shape}") 
         control_embedding = self.control_mlp(control_vector)
+        print(f"[UnetGenerator] control_embedding (after MLP).shape: {control_embedding.shape}")
         #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
         control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
+        print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
 
         return self.model(input, control_embedding)  # output control_embedding
         #return self.model(input)
@@ -554,14 +557,17 @@ class UnetSkipConnectionBlock(nn.Module):
 
         self.model = nn.Sequential(*model)
 
-    def forward(self, x, control_vector=None):
+    def forward(self, x, control_embedding=None):
+        print(f"[UnetSkipConnectionBlock] x.shape before control_embedding: {x.shape}")
         if self.outermost:
             return self.model(x)
         #elif control_vector is not None and hasattr(self, "innermost") and self.innermost:
-        elif self.innermost and control_vector is not None:
+        elif self.innermost and control_embedding is not None:
         # Splice control vectors only at Bottleneck level
-            x = torch.cat([x, control_vector.expand(-1, -1, x.size(2), x.size(3))], dim=1)
-            x = self.match_channels(x)
+            print(f"[UnetSkipConnectionBlock] control_embedding.shape: {control_embedding.shape}")
+            x = torch.cat([x, control_embedding.expand(-1, -1, x.size(2), x.size(3))], dim=1)
+            #x = self.match_channels(x)
+            print(f"[UnetSkipConnectionBlock] x.shape after concatenation: {x.shape}")
             return torch.cat([x, self.model(x)], 1)
         else:   # add skip connections
             return torch.cat([x, self.model(x)], 1)
