@@ -624,11 +624,10 @@ class UnetSkipConnectionBlock(nn.Module):
 
     def forward(self, x, control_embedding):
         #print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
-
-        print(f"[UnetSkipConnectionBlock] Received control_embedding: {control_embedding}")
+        #print(f"[UnetSkipConnectionBlock] Received control_embedding: {control_embedding}")
 
         if self.outermost:
-            out = self.model(x)
+            out = self.model(x, control_embedding)
             print(f"[outermost] self.model(x).shape: {out.shape}")
             return out
 
@@ -636,13 +635,13 @@ class UnetSkipConnectionBlock(nn.Module):
             control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
             x = torch.cat([x, control_embedding], dim=1)
             print(f"[Innermost] x.shape after control embedding: {x.shape}")
-            return self.model(x)
+            return self.model(x, control_embedding)
         
             #return torch.cat([x, self.model(x)], 1)
 
         else:
             #print(f"[Medium] Passing x to self.model, expected input shape: {x.shape}")
-            model_out = self.model(x)
+            model_out = self.model(x, control_embedding)
             print(f"[Medium] self.model(x).shape: {model_out.shape}")
             return torch.cat([x, model_out], 1)
     
