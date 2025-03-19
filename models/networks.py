@@ -459,9 +459,9 @@ class UnetGenerator(nn.Module):
         
         # Add control vector MLP
         self.control_mlp = nn.Sequential(
-            nn.Linear(control_dim, ngf * 8),  # to ngf * 8 dimensions
+            nn.Linear(control_dim, 2048),  # to ngf * 8 dimensions
             nn.ReLU(True),
-	        nn.Linear(ngf * 8, ngf * 8),  # remap again
+	        nn.Linear(2048, 2048),  # remap again
             nn.ReLU(True)
             )
 
