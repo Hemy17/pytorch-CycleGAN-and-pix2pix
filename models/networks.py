@@ -463,7 +463,7 @@ class UnetGenerator(nn.Module):
             #nn.Linear(control_dim, 1024),  # to ngf * 8 dimensions
             #nn.ReLU(True),
 	        #nn.Linear(1024, 1024),  # remap again
-            nn.Linear(control_dim, 512),
+            nn.Linear(control_dim, 512 * 4 * 4),
             nn.ReLU(True)
             )
 
@@ -471,7 +471,7 @@ class UnetGenerator(nn.Module):
         print("\n=== 构建最内层（innermost）===")
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
         print("\n=== 构建中间层（ngf*8）===")
-        for i in range(num_downs - 5):      # 5    # add intermediate layers with ngf * 8 filters
+        for i in range(num_downs - 6):      # 5    # add intermediate layers with ngf * 8 filters
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
         # gradually reduce the number of filters from ngf * 8 to ngf
         print("\n=== 构建降维层（ngf*4 → ngf*8）===")
@@ -489,7 +489,7 @@ class UnetGenerator(nn.Module):
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
-        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 1, 1) 
+        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 1024, 1, 1)  
         #control_embedding = control_embedding.expand(-1, -1, 4, 4)
         #control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
