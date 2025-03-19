@@ -460,9 +460,10 @@ class UnetGenerator(nn.Module):
         
         # Add control vector MLP
         self.control_mlp = nn.Sequential(
-            nn.Linear(control_dim, 1024),  # to ngf * 8 dimensions
-            nn.ReLU(True),
-	        nn.Linear(1024, 1024),  # remap again
+            #nn.Linear(control_dim, 1024),  # to ngf * 8 dimensions
+            #nn.ReLU(True),
+	        #nn.Linear(1024, 1024),  # remap again
+            nn.Linear(control_dim, 512 * 4 * 4),
             nn.ReLU(True)
             )
 
@@ -484,9 +485,10 @@ class UnetGenerator(nn.Module):
         #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
-        control_embedding = control_embedding.view(control_embedding.shape[0], 1024, 1, 1)  
+        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
+        #control_embedding = control_embedding.view(control_embedding.shape[0], 1024, 1, 1)  
         #control_embedding = control_embedding.expand(-1, -1, 4, 4)
-        control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
+        #control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 4, 4)
         print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
 
