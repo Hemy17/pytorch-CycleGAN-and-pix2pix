@@ -622,7 +622,9 @@ class UnetSkipConnectionBlock(nn.Module):
         print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
 
         if self.outermost:
-            return self.model(x)
+            out = self.model(x)
+            print('outermost!')
+            return out
 
         elif self.innermost and control_embedding is not None:
             control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
