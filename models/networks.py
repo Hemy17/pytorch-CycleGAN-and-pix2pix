@@ -520,6 +520,9 @@ class UnetSkipConnectionBlock(nn.Module):
         uprelu = nn.ReLU(True)
         upnorm = norm_layer(outer_nc)
 
+        if not outermost: # Add 1X1 conv to match channels
+            self.match_channels = nn.Conv2d(inner_nc * 2, inner_nc, kernel_size=1, stride=1, padding=0, bias=False)
+
         if outermost:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
                                         kernel_size=4, stride=2,
@@ -551,9 +554,11 @@ class UnetSkipConnectionBlock(nn.Module):
     def forward(self, x, control_vector=None):
         if self.outermost:
             return self.model(x)
-        elif control_vector is not None and hasattr(self, "innermost") and self.innermost:
+        #elif control_vector is not None and hasattr(self, "innermost") and self.innermost:
+        elif self.innermost and control_vector is not None:
         # Splice control vectors only at Bottleneck level
             x = torch.cat([x, control_vector.expand(-1, -1, x.size(2), x.size(3))], dim=1)
+            x = self.match_channels(x)
             return torch.cat([x, self.model(x)], 1)
         else:   # add skip connections
             return torch.cat([x, self.model(x)], 1)
