@@ -463,22 +463,22 @@ class UnetGenerator(nn.Module):
             #nn.Linear(control_dim, 1024),  # to ngf * 8 dimensions
             #nn.ReLU(True),
 	        #nn.Linear(1024, 1024),  # remap again
-            nn.Linear(control_dim, 512 * 4 * 4),
+            nn.Linear(control_dim, 512),
             nn.ReLU(True)
             )
 
         # construct unet structure
         print("\n=== 构建最内层（innermost）===")
-        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=1024, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
+        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
         print("\n=== 构建中间层（ngf*8）===")
         for i in range(num_downs - 6):      # 5    # add intermediate layers with ngf * 8 filters
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
         # gradually reduce the number of filters from ngf * 8 to ngf
         print("\n=== 构建降维层（ngf*4 → ngf*8）===")
-        unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 1, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        unet_block = UnetSkipConnectionBlock(ngf, ngf * 1, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc * 2, submodule=unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
+        unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
 
     def forward(self, input, control_vector):
         """Standard forward"""
@@ -488,7 +488,8 @@ class UnetGenerator(nn.Module):
         #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
-        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
+        #control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
+        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 1, 1) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 1024, 1, 1)  
         #control_embedding = control_embedding.expand(-1, -1, 4, 4)
         #control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
@@ -528,7 +529,7 @@ class UnetSkipConnectionBlock(nn.Module):
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
         if input_nc is None:
-            input_nc = outer_nc * 2 # Add Control
+            input_nc = outer_nc
         
         print(f"\n[UnetSkipConnectionBlock Initializing]")
         print(f"  |- 层类型: {'outermost' if outermost else 'innermost' if innermost else '中间层'}")
@@ -543,8 +544,8 @@ class UnetSkipConnectionBlock(nn.Module):
         uprelu = nn.ReLU(True)
         upnorm = norm_layer(outer_nc)
 
-        if not outermost: # Add 1X1 conv to match channels
-            self.match_channels = nn.Conv2d(inner_nc * 2, inner_nc, kernel_size=1, stride=1, padding=0, bias=False)
+        #if not outermost: # Add 1X1 conv to match channels
+        #    self.match_channels = nn.Conv2d(inner_nc * 2, inner_nc, kernel_size=1, stride=1, padding=0, bias=False)
 
         if outermost:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
@@ -588,11 +589,11 @@ class UnetSkipConnectionBlock(nn.Module):
             print(f"[UnetSkipConnectionBlock] x.shape after concatenation: {x.shape}")
             return torch.cat([x, self.model(x)], 1)
         else:   # add skip connections
-            x = torch.cat([x, self.model(x)], 1)
-            return self.match_channels(x) 
-            #return torch.cat([x, self.model(x)], 1)
+            #x = torch.cat([x, self.model(x)], 1)
+            #return self.match_channels(x) 
+            return torch.cat([x, self.model(x)], 1)
 
-
+å
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
 
