@@ -626,7 +626,7 @@ class UnetSkipConnectionBlock(nn.Module):
             print(f"[outermost] self.model(x).shape: {out.shape}")
             return out
 
-        elif self.innermost and control_embedding is not None:
+        elif self.innermost: # and control_embedding is not None:
             control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
             x = torch.cat([x, control_embedding], dim=1)
             print(f"[Innermost] x.shape after control embedding: {x.shape}")
