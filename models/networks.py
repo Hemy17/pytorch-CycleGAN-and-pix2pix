@@ -578,7 +578,48 @@ class UnetSkipConnectionBlock(nn.Module):
             else:
                 model = down + [submodule] + up
 
-        self.model = nn.Sequential(*model)
+        #self.model = nn.Sequential(*model)
+
+        #self.model = nn.Sequential(*[
+        #    (lambda x: layer(x, control_embedding)) if isinstance(layer, UnetSkipConnectionBlock) else layer
+        #    for layer in model
+        #    ])
+
+        self.model = nn.ModuleList(model)
+
+    def forward(self, x, control_embedding=None):
+        #print(f"[DEBUG] Initial x.shape: {x.shape}")
+
+        if self.outermost:
+            out = self.model(x)
+            print(f"[outermost] self.model(x).shape: {out.shape}")
+            return out
+
+        elif self.innermost:  # 确保 control_embedding 正确传入
+            if control_embedding is not None:
+                control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
+                x = torch.cat([x, control_embedding], dim=1)
+                print(f"[Innermost] x.shape after control embedding: {x.shape}")
+
+            # 遍历 self.model，确保传递 control_embedding
+            for layer in self.model:
+                if isinstance(layer, UnetSkipConnectionBlock):
+                    x = layer(x, control_embedding)  # 🚀 传递 control_embedding
+                else:
+                    x = layer(x)
+
+            return x
+
+        else:
+            for layer in self.model:
+                if isinstance(layer, UnetSkipConnectionBlock):
+                    x = layer(x, control_embedding)  # 继续传递 control_embedding
+                else:
+                    x = layer(x)
+
+            print(f"[Medium] self.model(x).shape: {x.shape}")
+            return torch.cat([x, self.model(x)], 1)
+    
 
     '''
     def forward(self, x, control_embedding=None):
@@ -616,7 +657,7 @@ class UnetSkipConnectionBlock(nn.Module):
                 raise e
 
             return torch.cat([x, self.model(x)], 1)
-    '''
+
 
     def forward(self, x, control_embedding):
         #print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
@@ -639,6 +680,7 @@ class UnetSkipConnectionBlock(nn.Module):
             model_out = self.model(x)
             print(f"[Medium] self.model(x).shape: {model_out.shape}")
             return torch.cat([x, model_out], 1)
+    '''
     
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
