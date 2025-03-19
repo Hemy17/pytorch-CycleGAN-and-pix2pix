@@ -478,7 +478,8 @@ class UnetGenerator(nn.Module):
     def forward(self, input, control_vector):
         """Standard forward"""
         control_embedding = self.control_mlp(control_vector)
-        control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
+        #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
+        control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2)  # **改成 2x2 以匹配 x**
 
         return self.model(input, control_embedding)  # output control_embedding
         #return self.model(input)
