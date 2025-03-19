@@ -578,7 +578,9 @@ class UnetSkipConnectionBlock(nn.Module):
             print(f"[UnetSkipConnectionBlock] x.shape after concatenation: {x.shape}")
             return torch.cat([x, self.model(x)], 1)
         else:   # add skip connections
-            return torch.cat([x, self.model(x)], 1)
+            x = torch.cat([x, self.model(x)], 1)
+            return self.match_channels(x) 
+            #return torch.cat([x, self.model(x)], 1)
 
 
 class NLayerDiscriminator(nn.Module):
