@@ -468,13 +468,10 @@ class UnetGenerator(nn.Module):
             )
 
         # construct unet structure
-        print("\n=== 构建最内层（innermost）===")
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
-        print("\n=== 构建中间层（ngf*8）===")
         for i in range(num_downs - 6):      # 5    # add intermediate layers with ngf * 8 filters
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
         # gradually reduce the number of filters from ngf * 8 to ngf
-        print("\n=== 构建降维层（ngf*4 → ngf*8）===")
         unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
         unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
         unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
@@ -534,9 +531,9 @@ class UnetSkipConnectionBlock(nn.Module):
             input_nc = outer_nc
         
         print(f"\n[UnetSkipConnectionBlock Initializing]")
-        print(f"  |- 层类型: {'outermost' if outermost else 'innermost' if innermost else '中间层'}")
+        print(f"  |- layer type: {'outermost' if outermost else 'innermost' if innermost else 'medium'}")
         print(f"  |- outer_nc: {outer_nc}")
-        print(f"  |- input_nc: {input_nc} (自动计算或显式指定)")
+        print(f"  |- input_nc: {input_nc}")
         print(f"  |- inner_nc: {inner_nc}")
 
         downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4,
@@ -627,6 +624,8 @@ class UnetSkipConnectionBlock(nn.Module):
 
     def forward(self, x, control_embedding):
         #print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
+
+        print(f"[UnetSkipConnectionBlock] Received control_embedding: {control_embedding}")
 
         if self.outermost:
             out = self.model(x)
