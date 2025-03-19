@@ -475,10 +475,10 @@ class UnetGenerator(nn.Module):
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
         # gradually reduce the number of filters from ngf * 8 to ngf
         print("\n=== 构建降维层（ngf*4 → ngf*8）===")
-        unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        unet_block = UnetSkipConnectionBlock(ngf, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
-        self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc, submodule=unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
+        unet_block = UnetSkipConnectionBlock(ngf * 4, ngf * 4, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        unet_block = UnetSkipConnectionBlock(ngf * 2, ngf * 2, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        unet_block = UnetSkipConnectionBlock(ngf, ngf * 1, input_nc=None, submodule=unet_block, norm_layer=norm_layer)
+        self.model = UnetSkipConnectionBlock(output_nc, ngf, input_nc=input_nc * 2, submodule=unet_block, outermost=True, norm_layer=norm_layer)  # add the outermost layer
 
     def forward(self, input, control_vector):
         """Standard forward"""
