@@ -618,7 +618,7 @@ class UnetSkipConnectionBlock(nn.Module):
             return torch.cat([x, self.model(x)], 1)
     '''
 
-    def forward(self, x, control_embedding=None):
+    def forward(self, x, control_embedding):
         #print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
 
         if self.outermost:
