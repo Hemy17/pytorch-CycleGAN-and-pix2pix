@@ -557,7 +557,7 @@ class UnetSkipConnectionBlock(nn.Module):
             upconv = nn.ConvTranspose2d(inner_nc, outer_nc,
                                         kernel_size=4, stride=2,
                                         padding=1, bias=use_bias)
-            self.reduce_conv = nn.Conv2d(inner_nc * 2, inner_nc, kernel_size=1, stride=1, padding=0)
+            #self.reduce_conv = nn.Conv2d(inner_nc * 2, inner_nc, kernel_size=1, stride=1, padding=0)
 
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
@@ -640,7 +640,7 @@ class UnetSkipConnectionBlock(nn.Module):
             control_embedding = F.interpolate(control_embedding, size=(x.shape[2], x.shape[3]), mode="nearest")
             x = torch.cat([x, control_embedding], dim=1)
 
-            x = self.reduce_conv(x)
+            #x = self.reduce_conv(x)
 
             print(f"[Innermost] x.shape after control embedding: {x.shape}")
 
