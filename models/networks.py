@@ -575,6 +575,7 @@ class UnetSkipConnectionBlock(nn.Module):
 
         self.model = nn.Sequential(*model)
 
+    '''
     def forward(self, x, control_embedding=None):
         print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
         if self.outermost:
@@ -610,7 +611,37 @@ class UnetSkipConnectionBlock(nn.Module):
                 raise e
 
             return torch.cat([x, self.model(x)], 1)
+    '''
 
+    def forward(self, x, control_embedding=None):
+        print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
+
+        if self.outermost:
+            return self.model(x)
+
+        elif self.innermost and control_embedding is not None:
+            control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
+            x = torch.cat([x, control_embedding], dim=1)
+            print(f"[UnetSkipConnectionBlock] x.shape after control embedding: {x.shape}")
+            return self.model(x)
+
+        else:
+            print(f"[UnetSkipConnectionBlock] Passing x to self.model, expected input shape: {x.shape}")
+
+            model_out = None
+            try:
+                model_out = self.model(x)
+                if model_out is None:
+                    raise ValueError("self.model(x) returned None, which is unexpected.")
+
+                print(f"[UnetSkipConnectionBlock] self.model(x).shape: {model_out.shape}")
+            except Exception as e:
+                print(f"[ERROR] self.model(x) failed: {e}")
+                print(f"x.shape: {x.shape}")
+                raise e 
+
+            return torch.cat([x, model_out], 1)
+    
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
 
