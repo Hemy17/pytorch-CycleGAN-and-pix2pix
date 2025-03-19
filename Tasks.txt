@@ -1,0 +1,39 @@
+python [train.py](http://train.py) \
+--dataroot your_data_root/pix2pix_NewYork_bg_r_Stage_1_2/AB \
+--name gud_con_pix2pix_32 \
+--model pix2pix \
+--direction AtoB \
+--gpu_ids 1 \
+--batch_size 2 \
+--input_nc 9 \
+--netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512 
+
+python [train.py](http://train.py) \
+--dataroot your_data_root/pix2pix_NewYork_bg_r_Stage_2_3/AB \
+--name gud_con_pix2pix_33 \
+--model pix2pix \
+--direction AtoB \
+--gpu_ids 2 \
+--batch_size 2 \
+--input_nc 7 \
+--netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512 
+
+python [train.py](http://train.py) \
+--dataroot your_data_root/pix2pix_Chicago_of_r_Stage_1_2/AB \
+--name gud_con_pix2pix_34 \
+--model pix2pix \
+--direction AtoB \
+--gpu_ids 3 \
+--batch_size 2 \
+--input_nc 9 \
+--netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512 
+
+python [train.py](http://train.py) \
+--dataroot your_data_root/pix2pix_Chicago_of_r_Stage_2_3/AB \
+--name gud_con_pix2pix_35 \
+--model pix2pix \
+--direction AtoB \
+--gpu_ids 4 \
+--batch_size 2 \
+--input_nc 7 \
+--netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512
