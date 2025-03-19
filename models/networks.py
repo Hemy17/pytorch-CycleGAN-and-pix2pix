@@ -523,6 +523,8 @@ class UnetSkipConnectionBlock(nn.Module):
         super(UnetSkipConnectionBlock, self).__init__()
         self.outermost = outermost
         self.innermost = innermost
+        
+        print(f"Creating UnetSkipConnectionBlock: inner_nc={inner_nc}, outer_nc={outer_nc}, outermost={outermost}, innermost={innermost}")
 
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
@@ -624,22 +626,14 @@ class UnetSkipConnectionBlock(nn.Module):
             x = torch.cat([x, control_embedding], dim=1)
             print(f"[UnetSkipConnectionBlock] x.shape after control embedding: {x.shape}")
             return self.model(x)
+        
+            #return torch.cat([x, self.model(x)], 1)
 
         else:
             print(f"[UnetSkipConnectionBlock] Passing x to self.model, expected input shape: {x.shape}")
 
-            model_out = None
-            try:
-                model_out = self.model(x)
-                if model_out is None:
-                    raise ValueError("self.model(x) returned None, which is unexpected.")
-
-                print(f"[UnetSkipConnectionBlock] self.model(x).shape: {model_out.shape}")
-            except Exception as e:
-                print(f"[ERROR] self.model(x) failed: {e}")
-                print(f"x.shape: {x.shape}")
-                raise e 
-
+            model_out = self.model(x)
+            print(f"[DEBUG] self.model(x).shape: {model_out.shape}")
             return torch.cat([x, model_out], 1)
     
 class NLayerDiscriminator(nn.Module):
