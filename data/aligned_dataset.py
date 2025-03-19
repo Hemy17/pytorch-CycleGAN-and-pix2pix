@@ -73,7 +73,7 @@ class AlignedDataset(BaseDataset):
         if filename not in self.metrics_dict:
             raise FileNotFoundError(f"Metrics for {filename} not found in {self.metrics_csv_path}")
         control_vector = self.metrics_dict[filename]
-
+        control_vector = list(control_vector.values())
         control_vector = torch.tensor(control_vector, dtype=torch.float32)
 
         # apply the same transform to both A and B
