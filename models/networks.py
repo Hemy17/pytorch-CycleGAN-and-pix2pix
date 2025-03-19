@@ -479,7 +479,8 @@ class UnetGenerator(nn.Module):
         """Standard forward"""
         control_embedding = self.control_mlp(control_vector)
         #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
-        control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2)  # **改成 2x2 以匹配 x**
+        #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
+        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 2, 2) 
 
         return self.model(input, control_embedding)  # output control_embedding
         #return self.model(input)
@@ -508,7 +509,7 @@ class UnetSkipConnectionBlock(nn.Module):
         super(UnetSkipConnectionBlock, self).__init__()
         self.outermost = outermost
         self.innermost = innermost
-        
+
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
