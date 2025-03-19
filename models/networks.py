@@ -459,9 +459,9 @@ class UnetGenerator(nn.Module):
         
         # Add control vector MLP
         self.control_mlp = nn.Sequential(
-            nn.Linear(control_dim, 2048),  # to ngf * 8 dimensions
+            nn.Linear(control_dim, 1024),  # to ngf * 8 dimensions
             nn.ReLU(True),
-	        nn.Linear(2048, 2048),  # remap again
+	        nn.Linear(1024, 1024),  # remap again
             nn.ReLU(True)
             )
 
@@ -480,7 +480,7 @@ class UnetGenerator(nn.Module):
         control_embedding = self.control_mlp(control_vector)
         #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
-        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 2, 2) 
+        control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
 
         return self.model(input, control_embedding)  # output control_embedding
         #return self.model(input)
