@@ -469,7 +469,7 @@ class UnetGenerator(nn.Module):
 
         # construct unet structure
         print("\n=== 构建最内层（innermost）===")
-        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
+        unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=1024, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
         print("\n=== 构建中间层（ngf*8）===")
         for i in range(num_downs - 6):      # 5    # add intermediate layers with ngf * 8 filters
             unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=unet_block, norm_layer=norm_layer, use_dropout=use_dropout)
