@@ -646,24 +646,26 @@ class UnetSkipConnectionBlock(nn.Module):
 
             return self.model(x)
 
-        skip_x = x 
-        for layer in self.model:
-            if isinstance(layer, UnetSkipConnectionBlock):  
-                x = layer(x, control_embedding)
-            else:
-                x = layer(x)
-        #return self.model(x)
-        #return torch.cat([x, self.model(x)], 1)
-
-        if self.outermost:
-            #out = self.model(x)
-            print(f"[outermost] output x.shape: {x.shape}")
-            return x
         else:
-            #print(f"[Medium] Passing x to self.model, expected input shape: {x.shape}")
-            #model_out = self.model(x)
-            print(f"[Medium] Concatenating x.shape: {x.shape} with skip_x.shape: {skip_x.shape}")
-            return torch.cat([skip_x, x], 1)
+            skip_x = x 
+            for layer in self.model:
+                x = layer(x, control_embedding) 
+                #if isinstance(layer, UnetSkipConnectionBlock):  
+                #    x = layer(x, control_embedding)
+                #else:
+                #    x = layer(x)
+            #return self.model(x)
+            #return torch.cat([x, self.model(x)], 1)
+
+            if self.outermost:
+                #out = self.model(x)
+                print(f"[outermost] output x.shape: {x.shape}")
+                return x
+            else:
+                #print(f"[Medium] Passing x to self.model, expected input shape: {x.shape}")
+                #model_out = self.model(x)
+                print(f"[Medium] Concatenating x.shape: {x.shape} with skip_x.shape: {skip_x.shape}")
+                return torch.cat([skip_x, x], 1)
     
     
 class NLayerDiscriminator(nn.Module):
