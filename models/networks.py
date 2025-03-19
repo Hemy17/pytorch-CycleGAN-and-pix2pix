@@ -635,13 +635,14 @@ class UnetSkipConnectionBlock(nn.Module):
             if control_embedding is None:
                 raise ValueError("control_embedding is missing in innermost!")
             control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
+            #control_embedding = F.interpolate(control_embedding, size=(x.shape[2], x.shape[3]), mode="nearest")
             x = torch.cat([x, control_embedding], dim=1)
             print(f"[Innermost] x.shape after control embedding: {x.shape}")
 
         skip_x = x 
         for layer in self.model:
             if isinstance(layer, UnetSkipConnectionBlock):  
-                x = layer(x, control_embedding)
+                x = layer(x, control_embedding  if self.innermost else None)
             else:
                 x = layer(x)
         #return self.model(x)
