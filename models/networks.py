@@ -523,7 +523,7 @@ class UnetSkipConnectionBlock(nn.Module):
         super(UnetSkipConnectionBlock, self).__init__()
         self.outermost = outermost
         self.innermost = innermost
-        
+
         print(f"Creating UnetSkipConnectionBlock: inner_nc={inner_nc}, outer_nc={outer_nc}, outermost={outermost}, innermost={innermost}")
 
         if type(norm_layer) == functools.partial:
@@ -563,6 +563,9 @@ class UnetSkipConnectionBlock(nn.Module):
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
             model = down + up
+
+            print(f"[DEBUG] innermost ConvTranspose2d: inner_nc={inner_nc}, outer_nc={outer_nc}")
+
         else:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
                                         kernel_size=4, stride=2,
@@ -624,16 +627,16 @@ class UnetSkipConnectionBlock(nn.Module):
         elif self.innermost and control_embedding is not None:
             control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
             x = torch.cat([x, control_embedding], dim=1)
-            print(f"[UnetSkipConnectionBlock] x.shape after control embedding: {x.shape}")
+            print(f"[Innermost] x.shape after control embedding: {x.shape}")
             return self.model(x)
         
             #return torch.cat([x, self.model(x)], 1)
 
         else:
-            print(f"[UnetSkipConnectionBlock] Passing x to self.model, expected input shape: {x.shape}")
+            print(f"[Medium] Passing x to self.model, expected input shape: {x.shape}")
 
             model_out = self.model(x)
-            print(f"[DEBUG] self.model(x).shape: {model_out.shape}")
+            print(f"[Medium] self.model(x).shape: {model_out.shape}")
             return torch.cat([x, model_out], 1)
     
 class NLayerDiscriminator(nn.Module):
