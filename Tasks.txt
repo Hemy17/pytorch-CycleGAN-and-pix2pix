@@ -5,7 +5,6 @@ python [train.py](http://train.py) \
 --direction AtoB \
 --gpu_ids 1 \
 --batch_size 2 \
---input_nc 9 \
 --netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512 
 
 python [train.py](http://train.py) \
@@ -15,7 +14,6 @@ python [train.py](http://train.py) \
 --direction AtoB \
 --gpu_ids 2 \
 --batch_size 2 \
---input_nc 7 \
 --netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512 
 
 python [train.py](http://train.py) \
@@ -25,7 +23,6 @@ python [train.py](http://train.py) \
 --direction AtoB \
 --gpu_ids 3 \
 --batch_size 2 \
---input_nc 9 \
 --netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512 
 
 python [train.py](http://train.py) \
@@ -35,5 +32,4 @@ python [train.py](http://train.py) \
 --direction AtoB \
 --gpu_ids 4 \
 --batch_size 2 \
---input_nc 7 \
 --netG unet_512 --load_size 512 --crop_size 512 --display_winsize 512
