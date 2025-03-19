@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 import functools
 from torch.optim import lr_scheduler
+import torch.nn.functional as F 
 
 
 ###############################################################################
@@ -482,7 +483,10 @@ class UnetGenerator(nn.Module):
         print(f"[UnetGenerator] control_embedding (after MLP).shape: {control_embedding.shape}")
         #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
-        control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
+        #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
+        control_embedding = control_embedding.view(control_embedding.shape[0], 1024, 1, 1)  
+        control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
+        control_embedding = control_embedding.view(control_embedding.shape[0], 256, 4, 4)
         print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
 
         return self.model(input, control_embedding)  # output control_embedding
