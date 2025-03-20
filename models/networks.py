@@ -491,7 +491,8 @@ class UnetGenerator(nn.Module):
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 4, 4)
         gamma, beta = torch.chunk(control_params, 2, dim=1)
         #print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
-        print(f"[UnetGenerator] gamma.shape: {gamma.shape}, beta.shape: {beta.shape}")
+        
+        #print(f"[UnetGenerator] gamma.shape: {gamma.shape}, beta.shape: {beta.shape}")
 
         return self.model(input, gamma, beta)
         #return self.model(input, control_embedding)  # output control_embedding
@@ -522,7 +523,7 @@ class UnetSkipConnectionBlock(nn.Module):
         self.outermost = outermost
         self.innermost = innermost
 
-        print(f"Creating UnetSkipConnectionBlock: inner_nc={inner_nc}, outer_nc={outer_nc}, outermost={outermost}, innermost={innermost}")
+        #print(f"Creating UnetSkipConnectionBlock: inner_nc={inner_nc}, outer_nc={outer_nc}, outermost={outermost}, innermost={innermost}")
 
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
@@ -581,8 +582,8 @@ class UnetSkipConnectionBlock(nn.Module):
             else:
                 model = down + [submodule] + up
 
-        #self.model = nn.Sequential(*model)
-        self.model = nn.ModuleList(model)
+        self.model = nn.Sequential(*model)
+        #self.model = nn.ModuleList(model)
 
         #self.model = nn.Sequential(*[
         #    (lambda x: layer(x, control_embedding)) if isinstance(layer, UnetSkipConnectionBlock) else layer
@@ -592,26 +593,40 @@ class UnetSkipConnectionBlock(nn.Module):
         # self.model = nn.ModuleList(model)
 
     def forward(self, x, gamma, beta):
-        print(f"[UnetSkipConnectionBlock] Before FiLM: x.shape={x.shape}, gamma.shape={gamma.shape}, beta.shape={beta.shape}")
+        #print(f"[UnetSkipConnectionBlock] Before FiLM: x.shape={x.shape}, gamma.shape={gamma.shape}, beta.shape={beta.shape}")
 
         # **FiLM**
-        gamma_in = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
-        beta_in = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+        film_gamma = self.film_gamma(gamma)  # [B, outer_nc]
+        film_beta = self.film_beta(beta)     # [B, outer_nc]
 
-        print(f"[UnetSkipConnectionBlock] After FiLM: gamma.shape={gamma.shape}, beta.shape={beta.shape}, x.shape={x.shape}")
+        film_gamma = film_gamma.unsqueeze(-1).unsqueeze(-1)  # [B, outer_nc, 1, 1]
+        film_beta  = film_beta.unsqueeze(-1).unsqueeze(-1)
+    
+        #gamma_in = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+        #beta_in = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
 
-        x = gamma_in * x + beta_in  # Appling FiLM
+        #print(f"[UnetSkipConnectionBlock] After FiLM: gamma.shape={gamma.shape}, beta.shape={beta.shape}, x.shape={x.shape}")
 
-        for layer in self.model:
-            if isinstance(layer, UnetSkipConnectionBlock):  
-                x = layer(x, gamma, beta)
-            else:
-                x = layer(x)
+        x = film_gamma * x + film_beta
+        #x = gamma_in * x + beta_in  # Appling FiLM
 
-        if self.outermost:
-            return self.model(x, gamma, beta)
-        else:
-            return torch.cat([x, self.model(x, gamma, beta)], 1)
+        out = self.model(x)
+
+        if not self.outermost and not self.innermost:
+            out = torch.cat([x, out], dim=1)
+
+        return out
+    
+        #for layer in self.model:
+        #    if isinstance(layer, UnetSkipConnectionBlock):  
+        #        x = layer(x, gamma, beta)
+        #    else:
+        #        x = layer(x)
+        #
+        #if self.outermost:
+        #    return self.model(x, gamma, beta)
+        #else:
+        #    return torch.cat([x, self.model(x, gamma, beta)], 1)
 
     '''
     def forward(self, x, control_embedding=None):
