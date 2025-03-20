@@ -591,7 +591,27 @@ class UnetSkipConnectionBlock(nn.Module):
 
         # self.model = nn.ModuleList(model)
 
+    def forward(self, x, gamma, beta):
+        print(f"[UnetSkipConnectionBlock] Before FiLM: x.shape={x.shape}, gamma.shape={gamma.shape}, beta.shape={beta.shape}")
 
+        # **FiLM**
+        gamma_in = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+        beta_in = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+
+        print(f"[UnetSkipConnectionBlock] After FiLM: gamma.shape={gamma.shape}, beta.shape={beta.shape}, x.shape={x.shape}")
+
+        x = gamma_in * x + beta_in  # Appling FiLM
+
+        for layer in self.model:
+            if isinstance(layer, UnetSkipConnectionBlock):  
+                x = layer(x, gamma, beta)
+            else:
+                x = layer(x)
+
+        if self.outermost:
+            return self.model(x, gamma, beta)
+        else:
+            return torch.cat([x, self.model(x, gamma, beta)], 1)
 
     '''
     def forward(self, x, control_embedding=None):
@@ -668,27 +688,7 @@ class UnetSkipConnectionBlock(nn.Module):
     
     '''
 
-    def forward(self, x, gamma, beta):
-        print(f"[UnetSkipConnectionBlock] Before FiLM: x.shape={x.shape}, gamma.shape={gamma.shape}, beta.shape={beta.shape}")
 
-        # **FiLM**
-        gamma = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
-        beta = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
-
-        print(f"[UnetSkipConnectionBlock] After FiLM: gamma.shape={gamma.shape}, beta.shape={beta.shape}, x.shape={x.shape}")
-
-        x = gamma * x + beta  # Appling FiLM
-
-        for layer in self.model:
-            if isinstance(layer, UnetSkipConnectionBlock):  
-                x = layer(x, gamma, beta)
-            else:
-                x = layer(x)
-
-        if self.outermost:
-            return self.model(x, gamma, beta)
-        else:
-            return torch.cat([x, self.model(x, gamma, beta)], 1)
         
 
     
