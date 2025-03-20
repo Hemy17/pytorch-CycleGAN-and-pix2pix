@@ -489,13 +489,18 @@ class UnetGenerator(nn.Module):
         #control_embedding = control_embedding.expand(-1, -1, 4, 4)
         #control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 4, 4)
-        gamma, beta = torch.chunk(control_params, 2, dim=1)
+        
+        #gamma, beta = torch.chunk(control_params, 2, dim=1)
         #print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
         
         #print(f"[UnetGenerator] gamma.shape: {gamma.shape}, beta.shape: {beta.shape}")
 
-        return self.model(input)
-        #, gamma, beta)
+        batch_size = control_params.size(0)
+        hidden_dim = control_params.size(1) // 2
+        gamma = control_params[:, :hidden_dim]  # (B, hidden_dim)
+        beta =  control_params[:, hidden_dim:]   # (B, hidden_dim)
+
+        return self.model(input, gamma, beta)
         #return self.model(input, control_embedding)  # output control_embedding
         #return self.model(input)
 
@@ -523,6 +528,7 @@ class UnetSkipConnectionBlock(nn.Module):
         super(UnetSkipConnectionBlock, self).__init__()
         self.outermost = outermost
         self.innermost = innermost
+        self.submodule = submodule
 
         #print(f"Creating UnetSkipConnectionBlock: inner_nc={inner_nc}, outer_nc={outer_nc}, outermost={outermost}, innermost={innermost}")
 
@@ -558,6 +564,10 @@ class UnetSkipConnectionBlock(nn.Module):
                                         padding=1)
             down = [downconv]
             up = [uprelu, upconv, nn.Tanh()]
+
+            self.down = nn.Sequential(*down)
+            self.up   = nn.Sequential(*up)
+
             model = down + [submodule] + up
         elif innermost:
             upconv = nn.ConvTranspose2d(inner_nc, outer_nc,
@@ -567,6 +577,10 @@ class UnetSkipConnectionBlock(nn.Module):
 
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
+
+            self.down = nn.Sequential(*down)
+            self.up   = nn.Sequential(*up)
+
             model = down + up
 
             #print(f"[DEBUG] innermost ConvTranspose2d: inner_nc={inner_nc}, outer_nc={outer_nc}")
@@ -583,6 +597,9 @@ class UnetSkipConnectionBlock(nn.Module):
             else:
                 model = down + [submodule] + up
 
+            self.down = nn.Sequential(*down)
+            self.up   = nn.Sequential(*up)
+
         self.model = nn.Sequential(*model)
         #self.model = nn.ModuleList(model)
 
@@ -597,26 +614,45 @@ class UnetSkipConnectionBlock(nn.Module):
         #print(f"[UnetSkipConnectionBlock] Before FiLM: x.shape={x.shape}, gamma.shape={gamma.shape}, beta.shape={beta.shape}")
 
         # **FiLM**
-        film_gamma = self.film_gamma(gamma)  # [B, outer_nc]
-        film_beta = self.film_beta(beta)     # [B, outer_nc]
+        #film_gamma = self.film_gamma(gamma)  # [B, outer_nc]
+        #film_beta = self.film_beta(beta)     # [B, outer_nc]
 
-        film_gamma = film_gamma.unsqueeze(-1).unsqueeze(-1)  # [B, outer_nc, 1, 1]
-        film_beta  = film_beta.unsqueeze(-1).unsqueeze(-1)
+        #film_gamma = film_gamma.unsqueeze(-1).unsqueeze(-1)  # [B, outer_nc, 1, 1]
+        #film_beta  = film_beta.unsqueeze(-1).unsqueeze(-1)
     
-        #gamma_in = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
-        #beta_in = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+        gamma_in = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+        beta_in = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
 
         #print(f"[UnetSkipConnectionBlock] After FiLM: gamma.shape={gamma.shape}, beta.shape={beta.shape}, x.shape={x.shape}")
 
-        x = film_gamma * x + film_beta
-        #x = gamma_in * x + beta_in  # Appling FiLM
+        #x = film_gamma * x + film_beta
+        x = gamma_in * x + beta_in  # Appling FiLM
 
-        out = self.model(x)
+        x_down = self.down(x)  # [B, inner_nc, H/2, W/2]
 
-        if not self.outermost and not self.innermost:
-            out = torch.cat([x, out], dim=1)
+        # submodule
+        # -------------------------
+        if self.innermost:
+            x_sub = x_down
+        else:
+            x_sub = self.submodule(x_down, gamma, beta)
 
-        return out
+        # upsample
+        x_up = self.up(x_sub) 
+
+        # skip connection
+        if self.outermost:
+            return x_up
+        else:
+            # skip cat => [x_up, x]
+            return torch.cat([x, x_up], 1)
+        
+        #out = self.model(x)
+
+        #if not self.outermost and not self.innermost:
+        #    out = torch.cat([x, out], dim=1)
+
+        #return out
     
         #for layer in self.model:
         #    if isinstance(layer, UnetSkipConnectionBlock):  
