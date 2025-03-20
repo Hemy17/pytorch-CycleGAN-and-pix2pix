@@ -587,8 +587,8 @@ class UnetSkipConnectionBlock(nn.Module):
 
         # self.model = nn.ModuleList(model)
 
-        self.film_gamma = nn.Linear(512, inner_nc)
-        self.film_beta = nn.Linear(512, inner_nc)
+        self.film_gamma = nn.Linear(512, outer_nc)
+        self.film_beta = nn.Linear(512, outer_nc)
 
     '''
     def forward(self, x, control_embedding=None):
