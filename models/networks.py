@@ -532,8 +532,8 @@ class UnetSkipConnectionBlock(nn.Module):
             input_nc = outer_nc
         
 
-        self.film_gamma = nn.Linear(inner_nc, outer_nc)
-        self.film_beta = nn.Linear(inner_nc, outer_nc)
+        self.film_gamma = nn.Linear(512, outer_nc)
+        self.film_beta = nn.Linear(512, outer_nc)
         #print(f"\n[UnetSkipConnectionBlock Initializing]")
         #print(f"  |- layer type: {'outermost' if outermost else 'innermost' if innermost else 'medium'}")
         #print(f"  |- outer_nc: {outer_nc}")
