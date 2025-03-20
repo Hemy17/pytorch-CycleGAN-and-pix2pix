@@ -669,10 +669,13 @@ class UnetSkipConnectionBlock(nn.Module):
     def forward(self, x, gamma, beta):
         if self.innermost:
             print(f"[Innermost] x.shape: {x.shape}, gamma.shape: {gamma.shape}, beta.shape: {beta.shape}")
+        print(f"[UnetSkipConnectionBlock] Before FiLM: x.shape={x.shape}, gamma.shape={gamma.shape}, beta.shape={beta.shape}")
 
         # **FiLM**
         gamma = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
         beta = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+
+        print(f"[UnetSkipConnectionBlock] After FiLM: gamma.shape={gamma.shape}, beta.shape={beta.shape}, x.shape={x.shape}")
 
         x = gamma * x + beta  # Appling FiLM
 
