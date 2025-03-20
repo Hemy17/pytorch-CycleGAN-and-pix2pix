@@ -578,7 +578,8 @@ class UnetSkipConnectionBlock(nn.Module):
             else:
                 model = down + [submodule] + up
 
-        self.model = nn.Sequential(*model)
+        #self.model = nn.Sequential(*model)
+        self.model = nn.ModuleList(model)
 
         #self.model = nn.Sequential(*[
         #    (lambda x: layer(x, control_embedding)) if isinstance(layer, UnetSkipConnectionBlock) else layer
@@ -587,8 +588,8 @@ class UnetSkipConnectionBlock(nn.Module):
 
         # self.model = nn.ModuleList(model)
 
-        self.film_gamma = nn.Linear(512, outer_nc)
-        self.film_beta = nn.Linear(512, outer_nc)
+        self.film_gamma = nn.Linear(inner_nc, outer_nc)
+        self.film_beta = nn.Linear(inner_nc, outer_nc)
 
     '''
     def forward(self, x, control_embedding=None):
@@ -675,10 +676,16 @@ class UnetSkipConnectionBlock(nn.Module):
 
         x = gamma * x + beta  # Appling FiLM
 
+        for layer in self.model:
+            if isinstance(layer, UnetSkipConnectionBlock):  
+                x = layer(x, gamma, beta)
+            else:
+                x = layer(x)
+
         if self.outermost:
-            return self.model(x)
+            return self.model(x, gamma, beta)
         else:
-            return torch.cat([x, self.model(x)], 1)
+            return torch.cat([x, self.model(x, gamma, beta)], 1)
         
 
     
