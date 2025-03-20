@@ -84,11 +84,11 @@ class Pix2PixModel(BaseModel):
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
 
         self.control_vector = input['control_vector'].to(self.device) # Add control vector
-        print(f"[pix2pix_model.py] control_vector.shape: {self.control_vector.shape}")
+        #print(f"[pix2pix_model.py] control_vector.shape: {self.control_vector.shape}")
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        print(f"[pix2pix_model.py] Forward: control_vector.shape: {self.control_vector.shape}")
+        #print(f"[pix2pix_model.py] Forward: control_vector.shape: {self.control_vector.shape}")
         self.fake_B = self.netG(self.real_A, self.control_vector)  # G(A)
 
     def backward_D(self):
