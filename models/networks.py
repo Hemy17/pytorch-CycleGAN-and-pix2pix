@@ -460,12 +460,10 @@ class UnetGenerator(nn.Module):
         
         # Add control vector MLP
         self.control_mlp = nn.Sequential(
-            #nn.Linear(control_dim, 1024),  # to ngf * 8 dimensions
-            #nn.ReLU(True),
-	        #nn.Linear(1024, 1024),  # remap again
-            nn.Linear(control_dim, 512 * 4 * 4),
-            nn.ReLU(True)
-            )
+            nn.Linear(control_dim, ngf * 8),
+            nn.ReLU(True),
+            nn.Linear(ngf * 8, ngf * 8 * 2)  #  γ and β, dim =  ngf * 8
+        )
 
         # construct unet structure
         unet_block = UnetSkipConnectionBlock(ngf * 8, ngf * 8, input_nc=None, submodule=None, norm_layer=norm_layer, innermost=True)  # add the innermost layer
@@ -480,20 +478,23 @@ class UnetGenerator(nn.Module):
     def forward(self, input, control_vector):
         """Standard forward"""
         print(f"[UnetGenerator] control_vector.shape: {control_vector.shape}") 
-        control_embedding = self.control_mlp(control_vector)
-        print(f"[UnetGenerator] control_embedding (after MLP).shape: {control_embedding.shape}")
+        control_params = self.control_mlp(control_vector)
+        #print(f"[UnetGenerator] control_embedding (after MLP).shape: {control_embedding.shape}")
         #control_embedding = control_embedding.view(control_embedding.size(0), -1, 1, 1)  # to [B, C, 1, 1]
         #control_embedding = control_embedding.view(control_embedding.shape[0], -1, 2, 2) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 2, 2) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
-        control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
+        #control_embedding = control_embedding.view(control_embedding.shape[0], 512, 4, 4) 
         #control_embedding = control_embedding.view(control_embedding.shape[0], 1024, 1, 1)  
         #control_embedding = control_embedding.expand(-1, -1, 4, 4)
         #control_embedding = F.interpolate(control_embedding, size=(4, 4), mode='bilinear', align_corners=True)
         #control_embedding = control_embedding.view(control_embedding.shape[0], 256, 4, 4)
-        print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
+        gamma, beta = torch.chunk(control_params, 2, dim=1)
+        #print(f"[UnetGenerator] control_embedding (reshaped).shape: {control_embedding.shape}")
+        print(f"[UnetGenerator] gamma.shape: {gamma.shape}, beta.shape: {beta.shape}")
 
-        return self.model(input, control_embedding)  # output control_embedding
+        return self.model(input, gamma, beta)
+        #return self.model(input, control_embedding)  # output control_embedding
         #return self.model(input)
 
 
@@ -530,11 +531,11 @@ class UnetSkipConnectionBlock(nn.Module):
         if input_nc is None:
             input_nc = outer_nc
         
-        print(f"\n[UnetSkipConnectionBlock Initializing]")
-        print(f"  |- layer type: {'outermost' if outermost else 'innermost' if innermost else 'medium'}")
-        print(f"  |- outer_nc: {outer_nc}")
-        print(f"  |- input_nc: {input_nc}")
-        print(f"  |- inner_nc: {inner_nc}")
+        #print(f"\n[UnetSkipConnectionBlock Initializing]")
+        #print(f"  |- layer type: {'outermost' if outermost else 'innermost' if innermost else 'medium'}")
+        #print(f"  |- outer_nc: {outer_nc}")
+        #print(f"  |- input_nc: {input_nc}")
+        #print(f"  |- inner_nc: {inner_nc}")
 
         downconv = nn.Conv2d(input_nc, inner_nc, kernel_size=4,
                              stride=2, padding=1, bias=use_bias)
@@ -557,13 +558,13 @@ class UnetSkipConnectionBlock(nn.Module):
             upconv = nn.ConvTranspose2d(inner_nc, outer_nc,
                                         kernel_size=4, stride=2,
                                         padding=1, bias=use_bias)
-            self.reduce_conv = nn.Conv2d(inner_nc * 2, inner_nc, kernel_size=1, stride=1, padding=0)
+            #self.reduce_conv = nn.Conv2d(inner_nc * 2, inner_nc, kernel_size=1, stride=1, padding=0)
 
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
             model = down + up
 
-            print(f"[DEBUG] innermost ConvTranspose2d: inner_nc={inner_nc}, outer_nc={outer_nc}")
+            #print(f"[DEBUG] innermost ConvTranspose2d: inner_nc={inner_nc}, outer_nc={outer_nc}")
 
         else:
             upconv = nn.ConvTranspose2d(inner_nc * 2, outer_nc,
@@ -585,6 +586,9 @@ class UnetSkipConnectionBlock(nn.Module):
         #    ])
 
         # self.model = nn.ModuleList(model)
+
+        self.film_gamma = nn.Linear(inner_nc, inner_nc)
+        self.film_beta = nn.Linear(inner_nc, inner_nc)
 
     '''
     def forward(self, x, control_embedding=None):
@@ -622,7 +626,7 @@ class UnetSkipConnectionBlock(nn.Module):
                 raise e
 
             return torch.cat([x, self.model(x)], 1)
-    '''
+
 
     def forward(self, x, control_embedding):
         #print(f"[UnetSkipConnectionBlock] x.shape before passing to submodule: {x.shape}")
@@ -631,9 +635,7 @@ class UnetSkipConnectionBlock(nn.Module):
         if control_embedding is not None:
             print(f"[UnetSkipConnectionBlock] Received control_embedding.shape: {control_embedding.shape}")
 
-
-
-        if self.innermost: # and control_embedding is not None:
+        if self.innermost:
             if control_embedding is None:
                 raise ValueError("control_embedding is missing in innermost!")
             #control_embedding = control_embedding.unsqueeze(-1).unsqueeze(-1)  # (batch, C_ctrl, 1, 1)
@@ -653,19 +655,32 @@ class UnetSkipConnectionBlock(nn.Module):
                     x = layer(x, control_embedding)
                 else:
                     x = layer(x)
-            #return self.model(x)
-            #return torch.cat([x, self.model(x)], 1)
 
             if self.outermost:
-                #out = self.model(x)
                 print(f"[outermost] output x.shape: {x.shape}")
                 return x
             else:
-                #print(f"[Medium] Passing x to self.model, expected input shape: {x.shape}")
-                #model_out = self.model(x)
                 print(f"[Medium] Concatenating x.shape: {x.shape} with skip_x.shape: {skip_x.shape}")
                 return torch.cat([skip_x, x], 1)
     
+    '''
+
+    def forward(self, x, gamma, beta):
+        if self.innermost:
+            print(f"[Innermost] x.shape: {x.shape}, gamma.shape: {gamma.shape}, beta.shape: {beta.shape}")
+
+        # **FiLM**
+        gamma = self.film_gamma(gamma).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+        beta = self.film_beta(beta).unsqueeze(-1).unsqueeze(-1)  # to [batch, C, 1, 1]
+
+        x = gamma * x + beta  # Appling FiLM
+
+        if self.outermost:
+            return self.model(x)
+        else:
+            return torch.cat([x, self.model(x)], 1)
+        
+
     
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
