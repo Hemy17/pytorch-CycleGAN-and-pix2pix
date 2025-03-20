@@ -494,7 +494,7 @@ class UnetGenerator(nn.Module):
         
         #print(f"[UnetGenerator] gamma.shape: {gamma.shape}, beta.shape: {beta.shape}")
 
-        return self.model(input, gamma, beta)
+        return self.model(input) #, gamma, beta)
         #return self.model(input, control_embedding)  # output control_embedding
         #return self.model(input)
 
